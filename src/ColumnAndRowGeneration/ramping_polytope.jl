@@ -10,8 +10,9 @@ using LaTeXStrings
 using JSON;
 using StatsPlots;
 
+
 include("src_test_function.jl");
-include("src.jl");
+# include("src.jl");
 
 # const GUROBI_ENV = Gurobi.Env()  # this is to avoid having msgs from Gurobi all the time
 
