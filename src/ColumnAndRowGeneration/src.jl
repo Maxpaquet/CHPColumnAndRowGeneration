@@ -2282,6 +2282,9 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 	else
 		u_matching = u_matching[2:T_max+1];
 	end	
+	if Printer
+		println("[Column_And_Row_Generation_1] u_matching : ",u_matching);
+	end
 	(A,B,nb_intervals_gen) = Compute_A_B(u_matching, nb_gen);
 	A_added = copy(A); B_added = copy(B); nb_intervals_added = copy(nb_intervals_gen);
 	if Printer
