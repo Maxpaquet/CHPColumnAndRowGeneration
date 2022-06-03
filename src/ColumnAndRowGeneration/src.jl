@@ -1,7 +1,7 @@
 using CSV, DataFrames, JuMP, Gurobi, Plots, GLPK, TickTock, PyPlot, LaTeXStrings, JSON;
 
 # const MOI = MathOptInterface
-
+const GUROBI_ENV = Gurobi.Env();
 
 """
 @in :   - UT (array of size 1 x nb_gen) : minimum Up Time of the considered generator
@@ -161,7 +161,8 @@ Matching program from Unit Commitment problem. We consider all generators.
 This function is used to compute the uplifts of the generators.
 """
 function Matching(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer=false)
-	m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m_matching = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
+	# m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_matching,"OutputFlag",0);
 
 	@variable(m_matching, 0 <= p[g=1:nb_gen, t=0:T_max+1]);		# power output of each generator g at time period t
@@ -225,7 +226,8 @@ end
 
 
 function Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, price)
-	m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m_matching = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_matching,"OutputFlag",0);
 
 	@variable(m_matching, 0 <= p[g=1:nb_gen, t=0:T_max+1]);		# power output of each generator g at time period t
@@ -347,7 +349,8 @@ function MaxProfit_Producer(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, 
 		p_posterior = p_post[g];
 		pbar_posterior = pbar_post[g];
 	end
-	m_max_profit = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m_max_profit = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m_max_profit = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_max_profit,"OutputFlag",0);
 
 	@variable(m_max_profit, p[t=0:T_max+1], lower_bound = 0);		# power output of each generator g at time period t
@@ -455,7 +458,8 @@ end
 
 
 function MaxProfit_Consumer(data_demand, T_max, price, VOLL)
-	m_max_profit_consumer = JuMP.direct_model(Gurobi.Optimizer());
+	# m_max_profit_consumer = JuMP.direct_model(Gurobi.Optimizer());
+	m_max_profit_consumer = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV));
 	JuMP.set_optimizer_attribute(m_max_profit_consumer,"OutputFlag",0);
 	@variable(m_max_profit_consumer, l[t=1:T_max], lower_bound = 0);
 	@constraint(m_max_profit_consumer, upper_bound[t=1:T_max], l[t]<=data_demand[t]);
@@ -505,7 +509,8 @@ end
 """
 function Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer=false)
 	(A,B,nb_intervals_gen) = set_T(UT, T_max, nb_gen);
-	m = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m,"OutputFlag",0);
 
 	#JuMP.set_optimizer_attribute(m,"FeasibilityTol",1e-9);
@@ -844,7 +849,10 @@ end
 ##################################################################################################
 
 """
-Bender_Decomposition_1 does NOT consider "hot-start" models. 
+Bender_Decomposition_1 does NOT consider "hot-start" models.
+This function must be used to understand how row generation is working, not to measure any performances.
+
+This function uses the auxilirary functions Cut_Generating_Linear_Program and LP_Relaxation_3bin_C describe below.
 """
 function Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, delat_criterion=0, Printer=false)
 	iter_max = 500;
@@ -874,19 +882,19 @@ function Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 
 	for iter=1:iter_max
         if Printer
-            println()
-            println("------------------------------------------------------------------------------------------------------------------------------");
-            println("iter : ", iter);
+            println("\n");
+            println("[Bender_Decomposition_1] iter : ", iter);
         end
 		## Find solution with relaxation of 3-bin formulation
-		(p_time_opt, pbar_time_opt, u_opt, v_opt, w_opt, price, l, obj_real, time_3bin_C) = LP_Relaxation_3bin_C(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, Delta, Epsilon, Mu, Xi, Alpha, Sigma, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior);
+		(p_time_opt, pbar_time_opt, u_opt, v_opt, w_opt, price, l, obj_real, time_3bin_C) = LP_Relaxation_3bin_C(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, Delta, Epsilon, Mu, Xi, Alpha, Sigma, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer);
 		Solving_time+=time_3bin_C;
 		price_opt = price;
 		obj_vec[iter] = obj_real;
 		l_BD = l;
 		obj_real_BD = obj_real;
 		if Printer
-            println("obj_real : $(obj_real)");
+            println("[Bender_Decomposition_1] Objective value of the Linear Relaxation (Master program) : $(obj_real)");
+			println("[Bender_Decomposition_1] price = $(price)");
         end
 		### Check for generating cut
 		cut_added = false;
@@ -894,7 +902,6 @@ function Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 			if length(u_prior) > 0 && length(u_posterior)>0
 				#start_time = time();
 				(obj, z_opt, delta_opt, epsilon_opt, mu_opt, xi_opt, alpha_opt, sigma_opt, time_cut, nb_var, nb_con) = Cut_Generating_Linear_Program(MinRunCapacity[g], MaxRunCapacity[g], RU[g], RD[g], UT[g], DT[g], SU[g], SD[g], T_max, nb_gen, p_time_opt[g,:], pbar_time_opt[g,:], u_opt[g,:], v_opt[g,:], w_opt[g,:], u_prior[g], v_prior[g], w_prior[g], p_prior[g], pbar_prior[g], u_posterior[g], v_posterior[g], w_posterior[g], p_posterior[g], pbar_posterior[g]);
-				
 				#=slave_mean_con+=nb_con;
 				slave_mean_var+=nb_var;
 				elapsed = time()-start_time;
@@ -910,7 +917,8 @@ function Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 			if z_opt>delat_criterion
 				cut_added = true;
                 if Printer
-                    println("Cut added to master for generator $(g)");
+					println("[Bender_Decomposition_1] Need to add a cut for generator $(g), z_opt = $(z_opt)");
+                    println("[Bender_Decomposition_1] Cut added to master for generator $(g)");
                 end
 				### Add a cut to the master problem
 				# Add vector delta_opt, epsilon_opt, mu_opt, xi_opt, alpha_opt, sigma_opt
@@ -965,15 +973,19 @@ function Cut_Generating_Linear_Program(MinRunCapacity, MaxRunCapacity, RU, RD, U
 	(A,B,nb_intervals_gen) = set_T(UT, T_max, 1);
 	A = A[1,:];
 	B = B[1,:];
+	println("A = $(A)");
+	println("B = $(B)");
+	println("nb_intervals_gen = $(nb_intervals_gen)");
 	nb_intervals_gen = nb_intervals_gen[1];
 	if (!(nb_intervals_gen > 0))
 		#println("	Generator not taken into account.")
 		return (0, 0, zeros(T_max), zeros(T_max), zeros(T_max), zeros(T_max), zeros(T_max), zeros(T_max));
 	end
 	
-	m_cut = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m_cut = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m_cut = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_cut,"OutputFlag",0);
-	JuMP.set_optimizer_attribute(m_cut,"FeasibilityTol",1e-3);
+	# JuMP.set_optimizer_attribute(m_cut,"FeasibilityTol",1e-3);
 
 	# Variables
 	@variable(m_cut, 0 <= z);
@@ -1017,6 +1029,7 @@ function Cut_Generating_Linear_Program(MinRunCapacity, MaxRunCapacity, RU, RD, U
 	@constraint(m_cut, power_output_global[t=1:T_max], sum(p[i,t]  for i=1:nb_intervals_gen) == p_time_opt[t+1]); # Master program does not go until T_max+1
 	#@constraint(m_cut, power_output_global_2[t=0,T_max+1], sum(p[i,t]  for i=1:nb_intervals_gen) == p_time_opt[t+1]);
 	# 15c
+	println("pbar_time_opt = $(pbar_time_opt)");
 	@constraint(m_cut, maximum_power_available[t=1:T_max], sum(pbar[i,t]  for i=1:nb_intervals_gen) == pbar_time_opt[t+1]); # Master program does not go until T_max+1
 	@constraint(m_cut, maximum_power_available_2[t=0,T_max+1], sum(pbar[i,t]  for i=1:nb_intervals_gen) == pbar_time_opt[t+1]);
 	### Binary variable of UC (commitment status(on/off), startup status, shutdown status)
@@ -1028,7 +1041,6 @@ function Cut_Generating_Linear_Program(MinRunCapacity, MaxRunCapacity, RU, RD, U
 
 	@constraint(m_cut, shutdown_status[t=1:T_max], sum(gamma[i] for i=1:nb_intervals_gen if (t == B[i]+1)) == w_opt[t+1]); # Master program does not go until T_max+1
 	@constraint(m_cut, shutdown_status_2[t=0,T_max+1], sum(gamma[i] for i=1:nb_intervals_gen if (t == B[i]+1)) == w_opt[t+1]);
-
 	### Prior data
 	if length(u_prior) > 0
 		JuMP.fix(u[0],u_prior; force = true);
@@ -1037,7 +1049,6 @@ function Cut_Generating_Linear_Program(MinRunCapacity, MaxRunCapacity, RU, RD, U
 		JuMP.fix(p_time[0],p_prior; force = true);
 		JuMP.fix(pbar_time[0],pbar_prior; force = true);
 	end
-
 	### Posterior data
 	if length(u_posterior) > 0
 		JuMP.fix(u[T_max+1],u_posterior; force = true);
@@ -1066,7 +1077,8 @@ function Cut_Generating_Linear_Program(MinRunCapacity, MaxRunCapacity, RU, RD, U
 end
 
 function LP_Relaxation_3bin_C(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD,T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, Delta, Epsilon, Mu, Xi, Alpha, Sigma, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer=false)
-	m_relax = JuMP.direct_model(Gurobi.Optimizer());
+	# m_relax = JuMP.direct_model(Gurobi.Optimizer());
+	m_relax = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV));
 	JuMP.set_optimizer_attribute(m_relax,"OutputFlag",0);
 
 	@variable(m_relax, 0 <= p[g=1:nb_gen, t=0:T_max+1]);		# power output of each generator g at time period t
