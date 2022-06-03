@@ -1725,7 +1725,8 @@ end
 Function used in the dynamic column-and-row generation.
 """
 function Restricted_Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, A, B, nb_intervals_gen,u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior)
-	m = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m,"OutputFlag",0);
 	# Variables
 	@variable(m, 0 <= p[g=1:nb_gen, i=1:nb_intervals_gen[g], t=0:T_max+1]);	# Power output vector of the generators		p[generator g, interval(a,b) i, time t]
@@ -2061,7 +2062,8 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	# end
 	### Solve Matching and get "on-intervals" to initialize \bar{S}
 	#(p_matching, pbar_matching, u_matching, v_matching, w_matching, l_matching, obj_real_matching, Solving_time) = Matching(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior);
-	m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m_matching = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_matching,"OutputFlag",0);
 	@variable(m_matching, 0 <= p[g=1:nb_gen, t=0:T_max+1]);		# power output of each generator g at time period t
 	@variable(m_matching, 0 <= pbar[g=1:nb_gen, t=0:T_max+1]);	# maximum power available of each generator g at time period t
