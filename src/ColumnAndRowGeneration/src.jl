@@ -1,3 +1,6 @@
+using CSV, DataFrames, JuMP, Gurobi, Plots, GLPK, TickTock, PyPlot, LaTeXStrings, JSON, MathOptInterface;
+
+# const MOI = MathOptInterface
 
 
 """
@@ -208,7 +211,8 @@ function Matching(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max,
 	optimize!(m_matching);
 	u_val = value.(u); v_val = value.(v); w_val = value.(w); p_val = value.(p); pbar_val = value.(pbar);
 	l_val = value.(l);
-	Solving_time = MOI.get(m_matching, MOI.SolveTime());
+	# Solving_time = MOI.get(m_matching, MOI.SolveTime());
+	Solving_time = 0
 
 	if Printer
 		nb_con = sum([num_constraints(m_matching, i, j) for (i,j) in list_of_constraint_types(m_matching)]);
@@ -269,7 +273,8 @@ function Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD,
 	optimize!(m_matching);
 	u_val = value.(u); v_val = value.(v); w_val = value.(w); p_val = value.(p); pbar_val = value.(pbar);
 	l_val = value.(l);
-	Solving_time = MOI.get(m_matching, MOI.SolveTime());
+	# Solving_time = MOI.get(m_matching, MOI.SolveTime());
+	Solving_time = 0
 	return (p_val.data, pbar_val.data, u_val.data, v_val.data, w_val.data, l_val, objective_value(m_matching), Solving_time);
 end
 
@@ -316,8 +321,8 @@ function Matching_NO_Posterior(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, S
 	optimize!(m_matching);
 	u_val = value.(u); v_val = value.(v); w_val = value.(w); p_val = value.(p); pbar_val = value.(pbar);
 	l_val = value.(l);
-	Solving_time = MOI.get(m_matching, MOI.SolveTime());
-
+	# Solving_time = MOI.get(m_matching, MOI.SolveTime());
+	Solving_time = 0
 	return (p_val.data, pbar_val.data, u_val.data, v_val.data, w_val.data, l_val, objective_value(m_matching), Solving_time);
 end
 
@@ -325,7 +330,7 @@ end
 """
 Maximum Profit for each generator g. We consider one generator at a time.
 
-This function is used to compute the uplifts of the generators.
+This function is used to compute the uplifts of the generator g.
 """
 function MaxProfit_Producer(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, F, C, NoLoadConsumption, price, u_pri, v_pri, w_pri, p_pri, pbar_pri, u_post, v_post, w_post, p_post, pbar_post, g)
 	if length(u_pri) > 0
@@ -476,7 +481,7 @@ end
 		- SD (array of size 1 x nb_gen) : shut-down levels
 		- T_max (scalar) : number of considered periods
 		- nb_gen (scalar) : number of considered generators
-		- F (array of size 1 x nb_gen) : fixed strat up costs
+		- F (array of size 1 x nb_gen) : fixed start up costs
 		- C (array of size 1 x nb_gen) : marginal cost
 		- NoLoadConsumption (array of size 1 x nb_gen) : fixed cost to pay when generator g produces something
 		- data_demand (array of size 1 x T_max) : demand that production has to meet
@@ -616,9 +621,13 @@ function Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 	### Objective function
 	@objective(m, Min, sum( sum( NoLoadConsumption[g]*C[g]*u[g,t] + F[g]*v[g,t] + C[g]*p_time[g,t] for t=1:T_max) for g=1:nb_gen) - VOLL*sum(l[t] for t=1:T_max));
 	optimize!(m);
-	Solving_time = MOI.get(m, MOI.SolveTime());
+	# Solving_time = MOI.get(m, MOI.SolveTime());
+	Solving_time = 0;
 	price = dual.(loads);
-	u_val = value.(u); v_val = value.(v); p_time_val = value.(p_time); l_val = value.(l);
+	u_val = value.(u);
+	v_val = value.(v);
+	p_time_val = value.(p_time);
+	l_val = value.(l);
 
 	if Printer
 		nb_con = sum([num_constraints(m, i, j) for (i,j) in list_of_constraint_types(m)]);
@@ -628,7 +637,7 @@ function Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 	nb_con = sum([num_constraints(m, i, j) for (i,j) in list_of_constraint_types(m)]);
 	nb_var = num_variables(m);
 
-	return (value.(p).data, value.(pbar).data, value.(gamma), value.(p_time).data, value.(pbar_time).data, value.(u).data, value.(v).data, value.(w).data, price, l_val, objective_value(m), MOI.get(m, MOI.SolveTime()), nb_var, nb_con);
+	return (value.(p).data, value.(pbar).data, value.(gamma), value.(p_time).data, value.(pbar_time).data, value.(u).data, value.(v).data, value.(w).data, price, l_val, objective_value(m), Solving_time, nb_var, nb_con);
 end
 
 
@@ -707,7 +716,8 @@ function Extended_Formulation_NO_Posterior(MinRunCapacity, MaxRunCapacity, RU, R
 	optimize!(m);
 	price = dual.(loads);
 	u_val = value.(u); v_val = value.(v); p_time_val = value.(p_time); l_val = value.(l);
-	Solving_time = MOI.get(m, MOI.SolveTime());
+	# Solving_time = MOI.get(m, MOI.SolveTime());
+	Solving_time = 0
 	return (value.(p).data, value.(pbar).data, value.(gamma), value.(p_time).data, value.(pbar_time).data, value.(u).data, value.(v).data, value.(w).data, price, l_val, objective_value(m), Solving_time);
 end
 
@@ -766,7 +776,8 @@ function LP_Relaxation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T
 	### Objective function
 	@objective(m_relax, Min, sum( sum( NoLoadConsumption[g]*C[g]*u[g,t] + F[g]*v[g,t] + C[g]*p[g,t] for t=1:T_max) for g=1:nb_gen) - VOLL*sum( l[t] for t=1:T_max));
 	optimize!(m_relax);
-	Solving_time = MOI.get(m_relax, MOI.SolveTime());
+	# Solving_time = MOI.get(m_relax, MOI.SolveTime());
+	Solving_time = 0;
 	price_UB = dual.(loads);
 	u_val = value.(u); v_val = value.(v); p_val = value.(p);
 
@@ -818,7 +829,8 @@ function LP_Relaxation_NO_Posterior(MinRunCapacity, MaxRunCapacity, RU, RD, UT, 
 	### Objective function
 	@objective(m_relax, Min, sum( sum( NoLoadConsumption[g]*C[g]*u[g,t] + F[g]*v[g,t] + C[g]*p[g,t] for t=1:T_max) for g=1:nb_gen) - VOLL*sum( l[t] for t=1:T_max));
 	optimize!(m_relax);
-	Solving_time = MOI.get(m_relax, MOI.SolveTime());
+	# Solving_time = MOI.get(m_relax, MOI.SolveTime());
+	Solving_time = 0;
 	price_UB = dual.(loads);
 	u_val = value.(u); v_val = value.(v); p_val = value.(p);
 	return (value.(p).data, value.(pbar).data, value.(u).data, value.(v).data, value.(w).data, price_UB, value.(l), objective_value(m_relax), Solving_time);
@@ -831,6 +843,9 @@ end
 ##################################################################################################
 ##################################################################################################
 
+"""
+Bender_Decomposition_1 does NOT consider "hot-start" models. 
+"""
 function Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, delat_criterion=0, Printer=false)
 	iter_max = 500;
 	obj_vec = zeros(iter_max);
@@ -1046,7 +1061,8 @@ function Cut_Generating_Linear_Program(MinRunCapacity, MaxRunCapacity, RU, RD, U
 	#println("################################# num constraints $(sum([num_constraints(m_cut, i, j) for (i,j) in list_of_constraint_types(m_cut)]))");
 	nb_var = num_variables(m_cut);
 	nb_con = sum([num_constraints(m_cut, i, j) for (i,j) in list_of_constraint_types(m_cut)]);
-	return (objective_value(m_cut), value(z), delta_opt, epsilon_opt, mu_opt, xi_opt, alpha_opt, sigma_opt, MOI.get(m_cut, MOI.SolveTime()), nb_var, nb_con);
+	# return (objective_value(m_cut), value(z), delta_opt, epsilon_opt, mu_opt, xi_opt, alpha_opt, sigma_opt, MOI.get(m_cut, MOI.SolveTime()), nb_var, nb_con);
+	return (objective_value(m_cut), value(z), delta_opt, epsilon_opt, mu_opt, xi_opt, alpha_opt, sigma_opt, 0, nb_var, nb_con);
 end
 
 function LP_Relaxation_3bin_C(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD,T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, Delta, Epsilon, Mu, Xi, Alpha, Sigma, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer=false)
@@ -1128,7 +1144,8 @@ function LP_Relaxation_3bin_C(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 		println("[LP_Relaxation_3bin_C] objective of master program is $(objective_value(m_relax))");
 		println("[LP_Relaxation_3bin_C] price is $(price)")
 	end
-	return (value.(p).data, value.(pbar).data, value.(u).data, value.(v).data, value.(w).data, price, value.(l), objective_value(m_relax), MOI.get(m_relax, MOI.SolveTime()));
+	# return (value.(p).data, value.(pbar).data, value.(u).data, value.(v).data, value.(w).data, price, value.(l), objective_value(m_relax), MOI.get(m_relax, MOI.SolveTime()));
+	return (value.(p).data, value.(pbar).data, value.(u).data, value.(v).data, value.(w).data, price, value.(l), objective_value(m_relax), 0);
 end
 
 
@@ -1319,8 +1336,10 @@ function Bender_Decomposition(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 	for iter=1:iter_max
 		### Generating cut : delta^T * ones + epsilon^T * p + mu^T * pbar + xi^T * u + alpha^T * v + sigma^T*w <= 0
 		optimize!(m_relax);
-		Solving_time+=MOI.get(m_relax, MOI.SolveTime());
-		master_ST_mean+=MOI.get(m_relax, MOI.SolveTime());
+		# Solving_time+=MOI.get(m_relax, MOI.SolveTime());
+		Solving_time+=0;
+		# master_ST_mean+=MOI.get(m_relax, MOI.SolveTime());
+		master_ST_mean+=0;
 		price 			= dual.(loads);
 		push!(prices_vect,price);
 		p_time_opt 		= value.(p).data;
@@ -1375,8 +1394,10 @@ function Bender_Decomposition(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 			end
 
 			optimize!(elem_CGLP.model);
-			Solving_time+=MOI.get(elem_CGLP.model, MOI.SolveTime());
-			slave_ST_mean+=MOI.get(elem_CGLP.model, MOI.SolveTime());
+			# Solving_time+=MOI.get(elem_CGLP.model, MOI.SolveTime());
+			Solving_time+=0;
+			# slave_ST_mean+=MOI.get(elem_CGLP.model, MOI.SolveTime());
+			slave_ST_mean+=0;
 			z_opt = value.(elem_CGLP.z);
 			delta_opt 	= dual.(elem_CGLP.minimum_down_time_constraint);
 			epsilon_opt = dual.(elem_CGLP.power_output_global);
@@ -1545,7 +1566,8 @@ function Bender_Decomposition_NO_Posterior(MinRunCapacity, MaxRunCapacity, RU, R
 	for iter=1:iter_max
 		### Generating cut : delta^T * ones + epsilon^T * p + mu^T * pbar + xi^T * u + alpha^T * v + sigma^T*w <= 0
 		optimize!(m_relax);
-		Solving_time+=MOI.get(m_relax, MOI.SolveTime());
+		# Solving_time+=MOI.get(m_relax, MOI.SolveTime());
+		Solving_time+=0;
 		price 			= dual.(loads);
 		push!(prices_vect,price);
 		p_time_opt 		= value.(p).data;
@@ -1599,7 +1621,8 @@ function Bender_Decomposition_NO_Posterior(MinRunCapacity, MaxRunCapacity, RU, R
 			end
 
 			optimize!(elem_CGLP.model);
-			Solving_time+=MOI.get(elem_CGLP.model, MOI.SolveTime());
+			# Solving_time+=MOI.get(elem_CGLP.model, MOI.SolveTime());
+			Solving_time+=0;
 			z_opt = value.(elem_CGLP.z);
 			delta_opt 	= dual.(elem_CGLP.minimum_down_time_constraint);
 			epsilon_opt = dual.(elem_CGLP.power_output_global);
@@ -1751,7 +1774,9 @@ function Restricted_Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD,
 	# @objective(m, Min, sum( sum( NoLoadConsumption[g]*C[g]*sum(gamma[g,i] for i=1:nb_intervals_gen[g] if (A[g,i] <= t && t <= B[g,i])) + F[g]*sum(gamma[g,i]  for i=1:nb_intervals_gen[g] if (t == A[g,i])) + C[g]*sum(p[g,i,t]  for i=1:nb_intervals_gen[g]) for t=1:T_max) for g=1:nb_gen) - VOLL*sum(l[t] for t=1:T_max));
 	optimize!(m);
 	price = dual.(loads);
-	return (value.(p).data, value.(pbar).data, value.(gamma).data, value.(p_time).data, value.(pbar_time).data, value.(u).data, value.(v).data, value.(w).data, price, value.(l), objective_value(m), MOI.get(m, MOI.SolveTime()));
+	# return (value.(p).data, value.(pbar).data, value.(gamma).data, value.(p_time).data, value.(pbar_time).data, value.(u).data, value.(v).data, value.(w).data, price, value.(l), objective_value(m), MOI.get(m, MOI.SolveTime()));
+	return (value.(p).data, value.(pbar).data, value.(gamma).data, value.(p_time).data, value.(pbar_time).data, value.(u).data, value.(v).data, value.(w).data, price, value.(l), objective_value(m), 0);
+
 end
 
 """
@@ -2015,13 +2040,13 @@ Dynamic column-and-row generation.
 No hot-start model implementation.
 """
 function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer=false)
-	if Printer
-		println();
-		println();
-		println("##############################################################################################################");
-		println("Pre-process");
-		println("nb_gen : ",nb_gen);
-	end
+	# if Printer
+	# 	println();
+	# 	println();
+	# 	println("##############################################################################################################");
+	# 	println("Pre-process");
+	# 	println("nb_gen : ",nb_gen);
+	# end
 	### Solve Matching and get "on-intervals" to initialize \bar{S}
 	#(p_matching, pbar_matching, u_matching, v_matching, w_matching, l_matching, obj_real_matching, Solving_time) = Matching(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior);
 	m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
@@ -2044,6 +2069,10 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	ramp_down_consraint = @constraint(m_matching, [g=1:nb_gen, t=1:T_max+1], pbar[g,t-1] - p[g,t] <= RD[g]*u[g,t] + SD[g]*w[g,t]);	# Constraint 7, ramp-down constraints and shutdown mode
 	loads = @constraint(m_matching, [t=1:T_max], sum( p[g,t] for g=1:nb_gen) == l[t]);
 	pricing_problem = PricingProblem(m_matching,p,pbar,u,v,w,l,logical_constraint,minimum_up_time,minimum_down_time,generation_limits_1,generation_limits_2,generation_limits_3,ramp_up_constraint,ramp_down_consraint);
+	# if Printer
+	# 	println("Unit Commitment Problem. It provides the first production intervals for initializing the restricted set of intervals.");
+	# 	println(m_matching);
+	# end
 	### Prior data
 	if length(u_prior) > 0
 		for g=1:nb_gen
@@ -2069,7 +2098,9 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	optimize!(pricing_problem.model);
 	u_matching = value.(pricing_problem.u).data;
 	delete(pricing_problem.model, loads); # Only need the constraint for initialization. Don't need after because it will be dualize.
-	# println("u_matching : ",u_matching);
+	if Printer
+		println("[Column_And_Row_Generation_1] u_matching : ",u_matching);
+	end
 	if nb_gen>1
 		u_matching = u_matching[:,2:T_max+1];
 	else
@@ -2077,9 +2108,9 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	end	
 	(A,B,nb_intervals_gen) = Compute_A_B(u_matching, nb_gen);
 	if Printer
-		println("[Column_And_Row_Generation] A : ",A);
-		println("[Column_And_Row_Generation] B : ",B);
-		println("[Column_And_Row_Generation] nb_intervals_gen : ",nb_intervals_gen);
+		println("[Column_And_Row_Generation_1] Initial intervals, A : ",A);
+		println("[Column_And_Row_Generation_1] Initial intervals, B : ",B);
+		println("[Column_And_Row_Generation_1] nb_intervals_gen : ",nb_intervals_gen);
 	end
 	beta = 0;
 	iter_max = 200; # 5000
@@ -2100,10 +2131,10 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	phi = 10^(-3);
 	Solving_time = 0;
 	for iter=1:iter_max
-		println();
-		println();
 		if Printer
-			println("[Column_And_Row_Generation] iteration ",iter);
+			println();
+			println();
+			println("[Column_And_Row_Generation_1] iteration ",iter);
 		end
 		iter_stop = iter;
 		### Solve the restricted problem
@@ -2114,14 +2145,16 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		### Solve the pricing problem
 		@objective(pricing_problem.model, Min, sum( sum( NoLoadConsumption[g]*C[g]*pricing_problem.u[g,t] + F[g]*pricing_problem.v[g,t] + C[g]*pricing_problem.p[g,t] for t=1:T_max) for g=1:nb_gen) - VOLL*sum( pricing_problem.l[t] for t=1:T_max) - sum( price[t]*(sum( pricing_problem.p[g,t] for g=1:nb_gen) - pricing_problem.l[t]) for t=1:T_max) );
 		optimize!(pricing_problem.model);
-		Solving_time += MOI.get(pricing_problem.model, MOI.SolveTime());
+		# Solving_time += MOI.get(pricing_problem.model, MOI.SolveTime());
+		Solving_time += 0;
 		obj_pricing = objective_value(pricing_problem.model);
 		push!(obj_pricing_vector, obj_pricing);
 		u_pricing = value.(pricing_problem.u).data;
 
 		if Printer
-			println("[Column_And_Row_Generation] obj_restricted : ",obj_restricted);
-			println("[Column_And_Row_Generation] obj_pricing    : ",obj_pricing);
+			println("[Column_And_Row_Generation_1] price = $(price)")
+			println("[Column_And_Row_Generation_1] obj_restricted : ",obj_restricted);
+			println("[Column_And_Row_Generation_1] obj_pricing    : ",obj_pricing);
 		end
 		### Compute the Lagrangian dual bound
 		if iter==1
@@ -2129,11 +2162,16 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		else
 			beta = maximum([obj_pricing beta]);
 		end
+		if Printer
+			println("[Column_And_Row_Generation_1] Update dual bound beta = $(beta)");
+		end
 		if  obj_restricted <= beta + phi
-			println();
-			println();
 			if Printer
-				println("[Column_And_Row_Generation] OPTIMAL SOLUTION FOUND");
+				println();
+				println();
+				if Printer
+					println("[Column_And_Row_Generation_1] OPTIMAL SOLUTION FOUND");
+				end
 			end
 			break; # STOP algorithm.
 		end
@@ -2148,12 +2186,13 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		B = copy(B_new);
 		nb_intervals_gen = copy(nb_intervals_gen_new);
 		if Printer
-			println("[Column_And_Row_Generation : while loop] A : ",A);
-			println("[Column_And_Row_Generation : while loop] B : ",B);
-			println("[Column_And_Row_Generation : while loop] nb_intervals_gen : ",nb_intervals_gen);
-			println("A_added : ",A_added);
-			println("B_added : ",B_added);
-			println("nb_intervals_added : ",nb_intervals_added);
+			println("[Column_And_Row_Generation_1] u : $(u)");
+			println("[Column_And_Row_Generation_1] Update starting of intervals A : ",A);
+			println("[Column_And_Row_Generation_1] Update ending of intervals   B : ",B);
+			println("[Column_And_Row_Generation_1] nb_intervals_gen : ",nb_intervals_gen);
+			println("[Column_And_Row_Generation_1] A_added : ",A_added);
+			println("[Column_And_Row_Generation_1] B_added : ",B_added);
+			println("[Column_And_Row_Generation_1] nb_intervals_added : ",nb_intervals_added);
 		end
 	end
 	if Printer
@@ -2356,14 +2395,18 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 		
 		push!(nb_var_vec, num_variables(restricted_problem.model));
 		push!(nb_cons_vec, sum([num_constraints(restricted_problem.model, i, j) for (i,j) in list_of_constraint_types(restricted_problem.model)]));
-		push!(Solving_time_master_vec, MOI.get(restricted_problem.model, MOI.SolveTime()));
+		# push!(Solving_time_master_vec, MOI.get(restricted_problem.model, MOI.SolveTime()));
+		push!(Solving_time_master_vec, 0);
 
-		Solving_time_master += MOI.get(restricted_problem.model, MOI.SolveTime());
+		# Solving_time_master += MOI.get(restricted_problem.model, MOI.SolveTime());
+		Solving_time_master += 0;
 		# Solve the pricing problem
 		@objective(pricing_problem.model, Min, sum( sum( NoLoadConsumption[g]*C[g]*pricing_problem.u[g,t] + F[g]*pricing_problem.v[g,t] + C[g]*pricing_problem.p[g,t] for t=1:T_max) for g=1:nb_gen) - VOLL*sum( pricing_problem.l[t] for t=1:T_max) - sum( price[t]*(sum( pricing_problem.p[g,t] for g=1:nb_gen) - pricing_problem.l[t]) for t=1:T_max) );
 		optimize!(pricing_problem.model);
-		push!(Solving_time_slave_vec, MOI.get(pricing_problem.model, MOI.SolveTime()));
-		Solving_time_slave += MOI.get(pricing_problem.model, MOI.SolveTime());
+		# push!(Solving_time_slave_vec, MOI.get(pricing_problem.model, MOI.SolveTime()));
+		push!(Solving_time_slave_vec, 0);
+		# Solving_time_slave += MOI.get(pricing_problem.model, MOI.SolveTime());
+		Solving_time_slave += 0;
 		obj_pricing = objective_value(pricing_problem.model);
 		if Printer
 			println();
@@ -2519,7 +2562,8 @@ function Restricted_Master_Program_Column_Generation(data_demand, counter_schedu
 	# println();println();println(convex_combination);
 	@objective(m_restricted, Min, sum( sum( z[g,i]*cost_schedules[g,i] for i=1:counter_schedules[g]) for g=1:nb_gen) - VOLL*sum( l[t] for t=1:T_max) );
 	optimize!(m_restricted);
-	return objective_value(m_restricted), dual.(balance_constraint), dual.(convex_combination), MOI.get(m_restricted, MOI.SolveTime());
+	# return objective_value(m_restricted), dual.(balance_constraint), dual.(convex_combination), MOI.get(m_restricted, MOI.SolveTime());
+	return objective_value(m_restricted), dual.(balance_constraint), dual.(convex_combination), 0;
 end
 
 
@@ -2640,7 +2684,8 @@ function Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 			sub_problem = tab_subProblems[g];
 			@objective(sub_problem.model, Min, sum( NoLoadConsumption[g]*C[g]*sub_problem.u[t] + F[g]*sub_problem.v[t] + C[g]*sub_problem.p[t] for t=1:T_max) - sum( price[t]*sub_problem.p[t] for t=1:T_max));
 			optimize!(sub_problem.model);
-			Solving_time_slaves += MOI.get(sub_problem.model, MOI.SolveTime());
+			# Solving_time_slaves += MOI.get(sub_problem.model, MOI.SolveTime());
+			Solving_time_slaves += 0;
 			if Printer
 				println("g : $(g) -> obj = $(objective_value(sub_problem.model))");
 			end
@@ -2813,11 +2858,13 @@ function Column_Generation_DW(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 		price = dual.(RMP.balance_constraint);
 		push!(prices_iterates, price);
 		pi_dual = dual.(RMP.convex_combination);
-		Solving_time_master += MOI.get(RMP.model, MOI.SolveTime());
+		# Solving_time_master += MOI.get(RMP.model, MOI.SolveTime());
+		Solving_time_master += 0;
 
 		push!(nb_var_vec, num_variables(RMP.model));
 		push!(nb_cons_vec, sum([num_constraints(RMP.model, i, j) for (i,j) in list_of_constraint_types(RMP.model)]));
-		push!(Solving_time_master_vec, MOI.get(RMP.model, MOI.SolveTime()));
+		# push!(Solving_time_master_vec, MOI.get(RMP.model, MOI.SolveTime()));
+		push!(Solving_time_master_vec, 0);
 
 		if Printer
 			println();println();
@@ -2837,8 +2884,10 @@ function Column_Generation_DW(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU
 			if Printer
 				println("g : $(g) -> obj = $(objective_value(sub_problem.model))");
 			end
-			Solving_time_slaves += MOI.get(sub_problem.model, MOI.SolveTime());
-			solving_time_mean_slaves+= MOI.get(sub_problem.model, MOI.SolveTime());
+			# Solving_time_slaves += MOI.get(sub_problem.model, MOI.SolveTime());
+			Solving_time_slaves += 0;
+			# solving_time_mean_slaves+= MOI.get(sub_problem.model, MOI.SolveTime());
+			solving_time_mean_slaves+= 0;
 			#reduced_cost = ComputeReducedCost(objective_value(sub_problem.model), pi_dual[g]);
 			reduced_cost = objective_value(sub_problem.model) - pi_dual[g];
 			if reduced_cost < eps
