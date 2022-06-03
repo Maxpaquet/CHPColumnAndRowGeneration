@@ -917,7 +917,7 @@ function Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 			if z_opt>delat_criterion
 				cut_added = true;
                 if Printer
-					println("[Bender_Decomposition_1] Need to add a cut for generator $(g), z_opt = $(z_opt)");
+					println("[Bender_Decomposition_1] g = $(g) -> z_opt = $(z_opt)");
                     println("[Bender_Decomposition_1] Cut added to master for generator $(g)");
                 end
 				### Add a cut to the master problem
@@ -2560,7 +2560,8 @@ end
 
 function Restricted_Master_Program_Column_Generation(data_demand, counter_schedules, p_schedules, cost_schedules, nb_gen, T_max, VOLL)
 	### Build Master Restricted Problem
-	m_restricted = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	# m_restricted = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+	m_restricted = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_restricted,"OutputFlag",0);
 	JuMP.set_optimizer_attribute(m_restricted,"FeasibilityTol",1e-3);
 
@@ -2569,9 +2570,7 @@ function Restricted_Master_Program_Column_Generation(data_demand, counter_schedu
 	@constraint(m_restricted, [t=1:T_max], l[t]<=data_demand[t]);
 	# Market clearing constraint
 	@constraint(m_restricted, balance_constraint[t=1:T_max], sum( sum( sum( z[g,i]*prod for (time,prod) in enumerate(p_schedules[g,i]) if time==t)  for i=1:counter_schedules[g]) for g=1:nb_gen) - l[t] == 0 );
-	# println();println();println(balance_constraint);
 	@constraint(m_restricted, convex_combination[g=1:nb_gen], sum( z[g,i] for i=1:counter_schedules[g]) == 1 );
-	# println();println();println(convex_combination);
 	@objective(m_restricted, Min, sum( sum( z[g,i]*cost_schedules[g,i] for i=1:counter_schedules[g]) for g=1:nb_gen) - VOLL*sum( l[t] for t=1:T_max) );
 	optimize!(m_restricted);
 	# return objective_value(m_restricted), dual.(balance_constraint), dual.(convex_combination), MOI.get(m_restricted, MOI.SolveTime());
@@ -2592,7 +2591,8 @@ function Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 	tab_subProblems = Array{SubProblem}(undef, nb_gen);
 	count = 0;
 	for g=1:nb_gen
-		sub_prob = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+		# sub_prob = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
+		sub_prob = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 		JuMP.set_optimizer_attribute(sub_prob,"OutputFlag",0);
 	
 		@variable(sub_prob, p[t=0:T_max+1],lower_bound = 0);		# power output of each generator g at time period t
@@ -2662,12 +2662,12 @@ function Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 		end
 	end
 	if Printer
-		println("Initial schedule considered.");
-		println(p_schedules);
-		println(u_schedules);
-		println(v_schedules);
-		println(w_schedules);
-		println(cost_schedules);
+		println("[Column_Generation_DW_1] Unit Commitment problem provides the initial schedules considered.");
+		println("[Column_Generation_DW_1] p_schedules : $(p_schedules)");
+		println("[Column_Generation_DW_1] u_schedules : $(u_schedules)");
+		println("[Column_Generation_DW_1] v_schedules : $(v_schedules)");
+		println("[Column_Generation_DW_1] w_schedules : $(w_schedules)");
+		println("[Column_Generation_DW_1] cost_schedules : $(cost_schedules)");
 	end
 
 	### Iterations
@@ -2687,9 +2687,9 @@ function Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 		push!(obj_vec, obj_master);
 		if Printer
 			println();println();
-			println("iter : $(iter)");
-			println("obj_master : $(obj_master)");
-			println("price : $(price)");
+			println("[Column_Generation_DW_1] iter : $(iter)");
+			println("[Column_Generation_DW_1] obj_master : $(obj_master)");
+			println("[Column_Generation_DW_1] price : $(price)");
 		end
 		stopping_criteria = 1;
 		for g in 1:nb_gen
@@ -2699,7 +2699,7 @@ function Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 			# Solving_time_slaves += MOI.get(sub_problem.model, MOI.SolveTime());
 			Solving_time_slaves += 0;
 			if Printer
-				println("g : $(g) -> obj = $(objective_value(sub_problem.model))");
+				println("[Column_Generation_DW_1] g : $(g) -> obj = $(objective_value(sub_problem.model))");
 			end
 			#reduced_cost = ComputeReducedCost(objective_value(sub_problem.model), pi_dual[g]);
 			reduced_cost = objective_value(sub_problem.model) - pi_dual[g];
@@ -2718,14 +2718,15 @@ function Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, 
 			end
 		end
 		if Printer
-			println(p_schedules);
-			println(u_schedules);
-			println(v_schedules);
-			println(w_schedules);
-			println(cost_schedules);
+			println("[Column_Generation_DW_1] p_schedules : $(p_schedules)");
+			println("[Column_Generation_DW_1] u_schedules : $(u_schedules)");
+			println("[Column_Generation_DW_1] v_schedules : $(v_schedules)");
+			println("[Column_Generation_DW_1] w_schedules : $(w_schedules)");
+			println("[Column_Generation_DW_1] cost_schedules : $(cost_schedules)");
 		end
 		if stopping_criteria == 1 # no column were added.
-			println("iter_stop : $(iter_stop)");
+			println("[Column_Generation_DW_1] No columns were added, STOP criterion met.");
+			println("[Column_Generation_DW_1] iter_stop : $(iter_stop)");
 			break;
 		end
 	end
