@@ -18,8 +18,8 @@ SD                  = MinRunCapacity;
 # Value Of Lost Load
 VOLL = 3000; # [€/MWh]
 # Demand/Load
-#L = [6 11 16 11];
-L = [6 11 16 11 11 16 11 16 20];
+L = [6 11 16 11];
+# L = [6 11 16 11 11 16 11 16 20];
 T_max = length(L);
 
 ### Optimization programs
