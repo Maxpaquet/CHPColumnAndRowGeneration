@@ -1885,7 +1885,7 @@ function A_B_In_Intervals(a,b,g,A,B,nb_intervals_gen)
 end
 
 
-function Updata_A_B(u, nb_gen, A, B, nb_intervals_gen)
+function Update_A_B(u, nb_gen, A, B, nb_intervals_gen)
 	a = 0;
 	b = 0;
 	nb_intervals_added = zeros(Int64, nb_gen);
@@ -2062,6 +2062,7 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	# end
 	### Solve Matching and get "on-intervals" to initialize \bar{S}
 	#(p_matching, pbar_matching, u_matching, v_matching, w_matching, l_matching, obj_real_matching, Solving_time) = Matching(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior);
+	
 	# m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
 	m_matching = JuMP.direct_model(Gurobi.Optimizer(GUROBI_ENV)); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_matching,"OutputFlag",0);
@@ -2100,11 +2101,11 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	### Posterior data
 	if length(u_posterior) > 0
 		for g=1:nb_gen
-			JuMP.fix(pricing_problem.u[g,T_max+1],u_posterior[g]; force = true);
-			JuMP.fix(pricing_problem.v[g,T_max+1],v_posterior[g]; force = true);
-			JuMP.fix(pricing_problem.w[g,T_max+1],w_posterior[g]; force = true);
-			JuMP.fix(pricing_problem.p[g,T_max+1],p_posterior[g]; force = true);
-			JuMP.fix(pricing_problem.pbar[g,T_max+1],pbar_posterior[g]; force = true);
+			JuMP.fix(pricing_problem.u[g,T_max+1], u_posterior[g]; force = true);
+			JuMP.fix(pricing_problem.v[g,T_max+1], v_posterior[g]; force = true);
+			JuMP.fix(pricing_problem.w[g,T_max+1], w_posterior[g]; force = true);
+			JuMP.fix(pricing_problem.p[g,T_max+1], p_posterior[g]; force = true);
+			JuMP.fix(pricing_problem.pbar[g,T_max+1], pbar_posterior[g]; force = true);
 		end
 	end
 	### Objective function
@@ -2136,13 +2137,15 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	v_restricted = 0;
 	w_restricted = 0;
 	price = 0;
+	price_opt = 0;
 	price_iterates = [];
 	l_restricted = 0;
 	obj_restricted = 0;
 	iter_stop = 0;
 	obj_pricing = 0;
 	# phi = 1e-3;
-	phi = 10^(-3);
+	# phi = 10^(-3);
+	phi = 0;
 	Solving_time = 0;
 	for iter=1:iter_max
 		if Printer
@@ -2155,6 +2158,7 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		(p_restricted, pbar_restricted, gamma_restricted, p_time_restricted, pbar_time_restricted, u_restricted, v_restricted, w_restricted, price, l_restricted, obj_restricted, time) = Restricted_Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, A, B, nb_intervals_gen,u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior);
 		push!(obj_restricted_vector, obj_restricted);
 		push!(price_iterates, price);
+		price_opt = price;
 		Solving_time += time;
 		### Solve the pricing problem
 		@objective(pricing_problem.model, Min, sum( sum( NoLoadConsumption[g]*C[g]*pricing_problem.u[g,t] + F[g]*pricing_problem.v[g,t] + C[g]*pricing_problem.p[g,t] for t=1:T_max) for g=1:nb_gen) - VOLL*sum( pricing_problem.l[t] for t=1:T_max) - sum( price[t]*(sum( pricing_problem.p[g,t] for g=1:nb_gen) - pricing_problem.l[t]) for t=1:T_max) );
@@ -2166,7 +2170,7 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		u_pricing = value.(pricing_problem.u).data;
 
 		if Printer
-			println("[Column_And_Row_Generation_1] price = $(price)")
+			println("[Column_And_Row_Generation_1] price = $(price)");
 			println("[Column_And_Row_Generation_1] obj_restricted : ",obj_restricted);
 			println("[Column_And_Row_Generation_1] obj_pricing    : ",obj_pricing);
 		end
@@ -2195,7 +2199,7 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		else
 			u = u_pricing[2:T_max+1];
 		end
-		A_new,B_new,nb_intervals_gen_new, A_added, B_added, nb_intervals_added = Updata_A_B(u, nb_gen, A, B, nb_intervals_gen);
+		A_new,B_new,nb_intervals_gen_new, A_added, B_added, nb_intervals_added = Update_A_B(u, nb_gen, A, B, nb_intervals_gen);
 		A = copy(A_new);
 		B = copy(B_new);
 		nb_intervals_gen = copy(nb_intervals_gen_new);
@@ -2212,7 +2216,7 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	if Printer
 		println("[Column_And_Row_Generation] Stop at iteration ",iter_stop);
 	end
-	return (p_time_restricted, pbar_time_restricted, u_restricted, v_restricted, w_restricted, price, l_restricted, obj_restricted, obj_pricing, Solving_time, obj_restricted_vector, obj_pricing_vector, price_iterates);
+	return (p_time_restricted, pbar_time_restricted, u_restricted, v_restricted, w_restricted, price_opt, l_restricted, obj_restricted, obj_pricing, Solving_time, obj_restricted_vector, obj_pricing_vector, price_iterates);
 end
 
 
@@ -2221,12 +2225,12 @@ end
 Dynamic column-and-row generation. Implementation of hot-start model.
 """
 function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, Printer, phi_criteria=10^(-5))
-	if Printer
-		println();
-		println("##############################################################################################################");
-		println("Pre-process");
-		println("nb_gen : ",nb_gen);
-	end
+	# if Printer
+	# 	println();
+	# 	println("##############################################################################################################");
+	# 	println("Pre-process");
+	# 	println("nb_gen : ",nb_gen);
+	# end
 	### Solve Matching and get "on-intervals" to initialize \bar{S}
 	m_matching = JuMP.direct_model(Gurobi.Optimizer()); # OutputFlag=0
 	JuMP.set_optimizer_attribute(m_matching,"OutputFlag",0);
@@ -2429,7 +2433,7 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 			println("[Column_And_Row_Generation : while loop] obj_restricted : ",obj_restricted);
 			println("[Column_And_Row_Generation : while loop] obj_pricing    : ",obj_pricing);
 			println("[Column_And_Row_Generation : while loop] price : $(price)");
-			println("[Column_And_Row_Generation : while loop] p_opt : $(value.(pricing_problem.p))");
+			println("[Column_And_Row_Generation : while loop] p_opt : $(value.(pricing_problem.p).data)");
 			#println(pricing_problem.model);
 		end
 		push!(obj_pricing_vector,obj_pricing)
@@ -2454,14 +2458,14 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 		else
 			u = u_pricing[2:T_max+1];
 		end
-		A_new,B_new,nb_intervals_gen_new,A_added,B_added,nb_intervals_added = Updata_A_B(u, nb_gen, A, B, nb_intervals_gen);
+		A_new,B_new,nb_intervals_gen_new,A_added,B_added,nb_intervals_added = Update_A_B(u, nb_gen, A, B, nb_intervals_gen);
 		A = copy(A_new);
 		B = copy(B_new);
 		nb_intervals_gen = copy(nb_intervals_gen_new);
 		if  Printer
-			println("[Column_And_Row_Generation : while loop] A : ",A);
-			println("[Column_And_Row_Generation : while loop] B : ",B);
-			println("[Column_And_Row_Generation : while loop] nb_intervals_gen : ",nb_intervals_gen);
+			println("[Column_And_Row_Generation] A : ",A);
+			println("[Column_And_Row_Generation] B : ",B);
+			println("[Column_And_Row_Generation] nb_intervals_gen : ",nb_intervals_gen);
 		end
 
 		### Create variable
