@@ -10,3 +10,9 @@ It can be done in the julia shell by running these commands
 using Pkg;
 Pkg.add("package_to_add");
 ```
+# Annotation
+Row Generation method : RG
+
+Column Generation method : CG
+
+Column-And-Row Generation method : CRG
