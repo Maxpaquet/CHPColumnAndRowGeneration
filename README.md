@@ -14,9 +14,7 @@ It can be installed in the julia shell by running these commands
 using Pkg;
 Pkg.add("package_to_add");
 ```
-# Annotation
-Row Generation method : RG
-
-Column Generation method : CG
-
+# Annotations
+Row Generation method : RG  
+Column Generation method : CG  
 Column-And-Row Generation method : CRG
