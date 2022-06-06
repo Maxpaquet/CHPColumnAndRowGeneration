@@ -1,10 +1,14 @@
 # Computation of Convex Hull Prices using Column-And-Row Generation method.
-Column-And-Row Generation to compute the Convex Hull Prices.
+This github repository you can find three methods to compute the Convex Hull Prices (CHP).
+- [Exteded Formulation](https://doi.org/10.1287/ijoc.2017.0802)
+- [Row Generation method](https://doi.org/10.1287/ijoc.2017.0802)
+- [Column Generation method](https://doi.org/10.1007/s13675-013-0009-9)
+- [Column-And-Row Generation method](https://doi.org/10.1007/s13675-013-0009-9)
 
-Code in [julia](https://julialang.org/downloads/).
+The code is in [julia](https://julialang.org/downloads/).
 Required packages are : CSV, DataFrames, JuMP, Gurobi, Plots, GLPK, TickTock, PyPlot, LaTeXStrings, JSON.
 
-It can be done in the julia shell by running these commands
+It can be installed in the julia shell by running these commands
 
 ```
 using Pkg;
