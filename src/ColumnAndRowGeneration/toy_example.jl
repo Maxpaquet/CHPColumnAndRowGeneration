@@ -18,8 +18,8 @@ SD                  = MinRunCapacity;
 # Value Of Lost Load
 VOLL = 3000; # [€/MWh]
 # Demand/Load
-L = [6 11 16 11];
-# L = [6 11 16 11 11 16 11 16 20];
+# L = [6 11 16 11];
+L = [6 11 16 11 11 16 11 16 20];
 T_max = length(L);
 
 ### Optimization programs
@@ -92,7 +92,7 @@ uplift_consumer = 0;
 (max_profit_consumer,_) = MaxProfit_Consumer(L, T_max, price_EF, VOLL);
 received_profit_consumer = sum( (VOLL - price_EF[t])*l_matching[t] for t=1:T_max);
 uplift_consumer = max_profit_consumer - received_profit_consumer;
-println("Max Profit = sum($(uplift_producer)) + $(uplift_consumer) = $(sum(uplift_producer[i] for i=1:length(uplift_producer)) + uplift_consumer)");
+println("Sum Uplifts = sum($(uplift_producer)) + $(uplift_consumer) = $(sum(uplift_producer[i] for i=1:length(uplift_producer)) + uplift_consumer)");
 println();
 
 
