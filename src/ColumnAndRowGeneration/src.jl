@@ -1925,6 +1925,8 @@ function Update_A_B(u, nb_gen, A, B, nb_intervals_gen)
 				end
 			elseif flag==true
 				b = count-1;
+				println("[Update_A_B] A = $(A)");
+				println("[Update_A_B] B = $(B)");
 				if A_B_In_Intervals(a,b,1, A, B, nb_intervals_gen_old)==false
 					nb_intervals_gen[1]+=1;
 					nb_intervals_added[1]+=1;
@@ -2113,9 +2115,6 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	optimize!(pricing_problem.model);
 	u_matching = value.(pricing_problem.u).data;
 	delete(pricing_problem.model, loads); # Only need the constraint for initialization. Don't need after because it will be dualize.
-	if Printer
-		println("[Column_And_Row_Generation_1] u_matching : ",u_matching);
-	end
 	if nb_gen>1
 		u_matching = u_matching[:,2:T_max+1];
 	else
@@ -2123,6 +2122,7 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 	end	
 	(A,B,nb_intervals_gen) = Compute_A_B(u_matching, nb_gen);
 	if Printer
+		println("[Column_And_Row_Generation_1] u_matching = $(u_matching)");
 		println("[Column_And_Row_Generation_1] Initial intervals, A : ",A);
 		println("[Column_And_Row_Generation_1] Initial intervals, B : ",B);
 		println("[Column_And_Row_Generation_1] nb_intervals_gen : ",nb_intervals_gen);
@@ -2156,6 +2156,15 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		iter_stop = iter;
 		### Solve the restricted problem
 		(p_restricted, pbar_restricted, gamma_restricted, p_time_restricted, pbar_time_restricted, u_restricted, v_restricted, w_restricted, price, l_restricted, obj_restricted, time) = Restricted_Extended_Formulation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, A, B, nb_intervals_gen,u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior);
+		if Printer
+			println("[Column_And_Row_Generation_1] p_time_restricted = $(p_time_restricted)");
+			println("[Column_And_Row_Generation_1] u_restricted = $(u_restricted)");
+		end
+		if Printer
+			println("[Column_And_Row_Generation_1] price = $(price)");
+			println("[Column_And_Row_Generation_1] obj_restricted : ",obj_restricted);
+			println("[Column_And_Row_Generation_1] obj_pricing    : ",obj_pricing);
+		end
 		push!(obj_restricted_vector, obj_restricted);
 		push!(price_iterates, price);
 		price_opt = price;
@@ -2168,12 +2177,6 @@ function Column_And_Row_Generation_1(MinRunCapacity, MaxRunCapacity, RU, RD, UT,
 		obj_pricing = objective_value(pricing_problem.model);
 		push!(obj_pricing_vector, obj_pricing);
 		u_pricing = value.(pricing_problem.u).data;
-
-		if Printer
-			println("[Column_And_Row_Generation_1] price = $(price)");
-			println("[Column_And_Row_Generation_1] obj_restricted : ",obj_restricted);
-			println("[Column_And_Row_Generation_1] obj_pricing    : ",obj_pricing);
-		end
 		### Compute the Lagrangian dual bound
 		if iter==1
 			beta = obj_pricing;
@@ -2282,12 +2285,10 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 	else
 		u_matching = u_matching[2:T_max+1];
 	end	
-	if Printer
-		println("[Column_And_Row_Generation_1] u_matching : ",u_matching);
-	end
 	(A,B,nb_intervals_gen) = Compute_A_B(u_matching, nb_gen);
 	A_added = copy(A); B_added = copy(B); nb_intervals_added = copy(nb_intervals_gen);
 	if Printer
+		println("[Column_And_Row_Generation_1] u_matching : ",u_matching);
 		println("[Column_And_Row_Generation] Initialization - A_added : $(A_added)");
 		println("[Column_And_Row_Generation] Initialization - B_added : $(B_added)");
 		println("[Column_And_Row_Generation] Initialization - nb_intervals_added : $(nb_intervals_added)");
@@ -2433,10 +2434,12 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 			println();
 			println();
 			println("[Column_And_Row_Generation] iteration ",iter);
-			println("[Column_And_Row_Generation : while loop] obj_restricted : ",obj_restricted);
-			println("[Column_And_Row_Generation : while loop] obj_pricing    : ",obj_pricing);
-			println("[Column_And_Row_Generation : while loop] price : $(price)");
-			println("[Column_And_Row_Generation : while loop] p_opt : $(value.(pricing_problem.p).data)");
+			# println("[Column_And_Row_Generation] p_opt : $(value.(pricing_problem.p).data)");
+			println("[Column_And_Row_Generation] (restricted prob) p_time : $(value.(restricted_problem.p_time).data)");
+			println("[Column_And_Row_Generation] (restricted prob) u : $(value.(restricted_problem.u).data)");
+			println("[Column_And_Row_Generation] price : $(price)");
+			println("[Column_And_Row_Generation] obj_restricted : ",obj_restricted);
+			println("[Column_And_Row_Generation] obj_pricing    : ",obj_pricing);
 			#println(pricing_problem.model);
 		end
 		push!(obj_pricing_vector,obj_pricing)
@@ -2466,6 +2469,7 @@ function Column_And_Row_Generation(MinRunCapacity, MaxRunCapacity, RU, RD, UT, D
 		B = copy(B_new);
 		nb_intervals_gen = copy(nb_intervals_gen_new);
 		if  Printer
+			println("[Column_And_Row_Generation_1] u : ",u);
 			println("[Column_And_Row_Generation] A : ",A);
 			println("[Column_And_Row_Generation] B : ",B);
 			println("[Column_And_Row_Generation] nb_intervals_gen : ",nb_intervals_gen);
