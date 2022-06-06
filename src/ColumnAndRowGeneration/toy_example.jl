@@ -96,54 +96,54 @@ println("Max Profit = sum($(uplift_producer)) + $(uplift_consumer) = $(sum(uplif
 println();
 
 
-# ### Row Generation : Toy Example
-# println("---------------------------------------------------------------------------------------");
-# println("Row Generation (Bender decomposition)");
-# (iter_max, price_RG, obj_vec_RG, p_time_RG, pbar_time_RG, u_RG, v_RG, w_RG, l_RG, obj_RG, _) = Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, 0, true);
-# println("price_RG = $(price_RG)");
-# # price = price_RG
+### Row Generation : Toy Example
+println("---------------------------------------------------------------------------------------");
+println("Row Generation (Bender decomposition)");
+(iter_max, price_RG, obj_vec_RG, p_time_RG, pbar_time_RG, u_RG, v_RG, w_RG, l_RG, obj_RG, _) = Bender_Decomposition_1(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, 0, true);
+println("price_RG = $(price_RG)");
+# price = price_RG
 
-# println();
-# (_, _, _, _, _, _, obj_dual_lagrangian_RG, _) = Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, price_RG);
-# println("\nobj_dual_lagrangian_RG = $(obj_dual_lagrangian_RG)");
-# println("UC - Dual Lagrangian(price_RG) = $(obj_matching) - $(obj_dual_lagrangian_RG) = $(obj_matching-obj_dual_lagrangian_RG)");
+println();
+(_, _, _, _, _, _, obj_dual_lagrangian_RG, _) = Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, price_RG);
+println("\nobj_dual_lagrangian_RG = $(obj_dual_lagrangian_RG)");
+println("UC - Dual Lagrangian(price_RG) = $(obj_matching) - $(obj_dual_lagrangian_RG) = $(obj_matching-obj_dual_lagrangian_RG)");
 
-# uplift_producer_RG = zeros(nb_gen);
-# for g=1:nb_gen
-#     (max_profit, _, _, _, _, _) = MaxProfit_Producer(MinRunCapacity[g], MaxRunCapacity[g], RampUp[g], RampDown[g], UT[g], DT[g], SU[g], SD[g], T_max, F[g], C[g], NoLoadConsumption[g], price_RG, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, g);
-#     received_profit = sum(price_RG[t]*p_matching[g,t+1] - (NoLoadConsumption[g]*C[g]*u_matching[g,t+1] + F[g]*v_matching[g,t+1] + C[g]*p_matching[g,t+1]) for t=1:T_max);
-#     uplift_producer_RG[g] = max_profit-received_profit;
-# end
-# uplift_consumer_RG = 0;
-# (max_profit_consumer,_) = MaxProfit_Consumer(L, T_max, price_RG, VOLL);
-# received_profit_consumer = sum( (VOLL - price_RG[t])*l_matching[t] for t=1:T_max);
-# uplift_consumer_RG = max_profit_consumer - received_profit_consumer;
-# println("Max Profit = sum($(uplift_producer_RG)) + $(uplift_consumer_RG) = $(sum(uplift_producer_RG[i] for i=1:length(uplift_producer_RG)) + uplift_consumer_RG)");
-# println();
+uplift_producer_RG = zeros(nb_gen);
+for g=1:nb_gen
+    (max_profit, _, _, _, _, _) = MaxProfit_Producer(MinRunCapacity[g], MaxRunCapacity[g], RampUp[g], RampDown[g], UT[g], DT[g], SU[g], SD[g], T_max, F[g], C[g], NoLoadConsumption[g], price_RG, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, g);
+    received_profit = sum(price_RG[t]*p_matching[g,t+1] - (NoLoadConsumption[g]*C[g]*u_matching[g,t+1] + F[g]*v_matching[g,t+1] + C[g]*p_matching[g,t+1]) for t=1:T_max);
+    uplift_producer_RG[g] = max_profit-received_profit;
+end
+uplift_consumer_RG = 0;
+(max_profit_consumer,_) = MaxProfit_Consumer(L, T_max, price_RG, VOLL);
+received_profit_consumer = sum( (VOLL - price_RG[t])*l_matching[t] for t=1:T_max);
+uplift_consumer_RG = max_profit_consumer - received_profit_consumer;
+println("Max Profit = sum($(uplift_producer_RG)) + $(uplift_consumer_RG) = $(sum(uplift_producer_RG[i] for i=1:length(uplift_producer_RG)) + uplift_consumer_RG)");
+println();
 
-# ### Column Generation - Dantzig Wolfe : Toy Example
-# println("---------------------------------------------------------------------------------------");
-# println("Column Generation (Dantzig-Wolfe)");
-# (obj_CG, price_CG, iter_stop_CG, _, _, _, obj_vec_CG) = Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, true);
-# println("price_CG = $(price_CG)");
-# # price = price_CG;
-# println();
-# (_, _, _, _, _, _, obj_dual_lagrangian_CG, _) = Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, price_CG);
-# println("\nobj_dual_lagrangian_CG = $(obj_dual_lagrangian_CG)");
-# println("UC - Dual Lagrangian(price_CG) = $(obj_matching) - $(obj_dual_lagrangian_CG) = $(obj_matching-obj_dual_lagrangian_CG)");
+### Column Generation - Dantzig Wolfe : Toy Example
+println("---------------------------------------------------------------------------------------");
+println("Column Generation (Dantzig-Wolfe)");
+(obj_CG, price_CG, iter_stop_CG, _, _, _, obj_vec_CG) = Column_Generation_DW_1(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, true);
+println("price_CG = $(price_CG)");
+# price = price_CG;
+println();
+(_, _, _, _, _, _, obj_dual_lagrangian_CG, _) = Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, price_CG);
+println("\nobj_dual_lagrangian_CG = $(obj_dual_lagrangian_CG)");
+println("UC - Dual Lagrangian(price_CG) = $(obj_matching) - $(obj_dual_lagrangian_CG) = $(obj_matching-obj_dual_lagrangian_CG)");
 
-# uplift_producer_CG = zeros(nb_gen);
-# for g=1:nb_gen
-#     (max_profit, _, _, _, _, _) = MaxProfit_Producer(MinRunCapacity[g], MaxRunCapacity[g], RampUp[g], RampDown[g], UT[g], DT[g], SU[g], SD[g], T_max, F[g], C[g], NoLoadConsumption[g], price_CG, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, g);
-#     received_profit = sum(price_CG[t]*p_matching[g,t+1] - (NoLoadConsumption[g]*C[g]*u_matching[g,t+1] + F[g]*v_matching[g,t+1] + C[g]*p_matching[g,t+1]) for t=1:T_max);
-#     uplift_producer_CG[g] = max_profit-received_profit;
-# end
-# uplift_consumer_CG = 0;
-# (max_profit_consumer,_) = MaxProfit_Consumer(L, T_max, price_CG, VOLL);
-# received_profit_consumer = sum( (VOLL - price_CG[t])*l_matching[t] for t=1:T_max);
-# uplift_consumer_CG = max_profit_consumer - received_profit_consumer;
-# println("Max Profit = sum($(uplift_producer_CG)) + $(uplift_consumer_CG) = $(sum(uplift_producer_CG[i] for i=1:length(uplift_producer_CG)) + uplift_consumer_CG)");
-# println();
+uplift_producer_CG = zeros(nb_gen);
+for g=1:nb_gen
+    (max_profit, _, _, _, _, _) = MaxProfit_Producer(MinRunCapacity[g], MaxRunCapacity[g], RampUp[g], RampDown[g], UT[g], DT[g], SU[g], SD[g], T_max, F[g], C[g], NoLoadConsumption[g], price_CG, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, g);
+    received_profit = sum(price_CG[t]*p_matching[g,t+1] - (NoLoadConsumption[g]*C[g]*u_matching[g,t+1] + F[g]*v_matching[g,t+1] + C[g]*p_matching[g,t+1]) for t=1:T_max);
+    uplift_producer_CG[g] = max_profit-received_profit;
+end
+uplift_consumer_CG = 0;
+(max_profit_consumer,_) = MaxProfit_Consumer(L, T_max, price_CG, VOLL);
+received_profit_consumer = sum( (VOLL - price_CG[t])*l_matching[t] for t=1:T_max);
+uplift_consumer_CG = max_profit_consumer - received_profit_consumer;
+println("Max Profit = sum($(uplift_producer_CG)) + $(uplift_consumer_CG) = $(sum(uplift_producer_CG[i] for i=1:length(uplift_producer_CG)) + uplift_consumer_CG)");
+println();
 
 
 ### Column And Row Generation : Toy Example
