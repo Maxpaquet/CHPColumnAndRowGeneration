@@ -1194,7 +1194,12 @@ struct ModelCGLP
     shutdown_status_2;              # rhs to be modified
 end
 
-
+"""
+Need to specify which generator we are using.
+G_c = Int64[g for g=1:nb_gen]
+# gather_gen, indices_gen = Gather_Generators(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, G_c);
+gather_gen = Int64[i for i=1:nb_gen]; indices_gen = Int64[i for i=1:nb_gen];
+"""
 function Bender_Decomposition(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, data_demand, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, gather_gen, indices_gen, G_c, delta_criterion, Printer=false)
 	iter_max = 500;
 
