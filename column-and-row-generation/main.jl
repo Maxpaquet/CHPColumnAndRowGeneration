@@ -13,39 +13,6 @@ include("row-and-colimn-generation.jl")
 # const GUROBI_ENV = Gurobi.Env();
 
 """
-Look which generators are the same and gather them together.
-"""
-function Gather_Generators(MinRunCapacity, MaxRunCapacity, RU, RD, UT, DT, SU, SD, G_c)
-	gather_gen = []
-    indices_gen = []
-    #a = Int64[i for i=1:length(MinRunCapacity)]
-    indices_gen = Int64[0 for i=1:length(MinRunCapacity)]
-    visited = Int64[];
-	count = 1;
-	for i in G_c
-        if i ∉ visited
-            l = Int64[i]
-            if i+1<=length(MinRunCapacity)
-                for j=i+1:length(MinRunCapacity)
-                    if j∉visited && MinRunCapacity[i]==MinRunCapacity[j] && MaxRunCapacity[i]==MaxRunCapacity[j] && RU[i]==RU[j] && RD[i]==RD[j] && UT[i]==UT[j] && DT[i]==DT[j] && SD[i]==SD[j] && SU[i]==SU[j]
-                        ### generator i and j have the same parameters
-                        append!(l,j);
-                        append!(visited,j);
-                        indices_gen[j] = count;
-                        # filter!(e->e!=j,a)
-                    end
-                end
-            end
-			indices_gen[i] = count;
-            append!(visited, i);
-            append!(gather_gen,[l]);
-			count+=1;
-        end
-	end
-    return gather_gen,indices_gen
-end
-
-"""
 Compute set of generators G_c as described in Kneuven's paper, i.e. MaxRunCapacity[g]-MinRunCapacity[g]>minimum([RD[g] RU[g]]) && UT[g]>=2
 G_c = Compute_G_c(MinRunCapacity, MaxRunCapacity, RU, RD, UT)
 """
