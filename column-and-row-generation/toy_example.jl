@@ -1,4 +1,5 @@
-using CSV, DataFrames, JuMP, Gurobi, Plots, GLPK, TickTock, LaTeXStrings, JSON;
+using CSV, DataFrames, JuMP, Plots, GLPK, TickTock, LaTeXStrings, JSON ,HiGHS;
+# Gurobi
 include("src.jl");
 
 ### DATA
@@ -83,27 +84,27 @@ println("l_UC = $(l_matching)"); # demand to be meet by the generators
 println("obj_UC = $(obj_matching)");
 println();
 
-# ### Extended Formulation
-# println("---------------------------------------------------------------------------------------");
-# println("Extended Formulation");
-# (p_EF, pbar_EF, gamma_EF, p_time_EF, pbar_time_EF, u_EF, v_EF, w_EF, price_EF, l_val_EF, obj_EF, _, nb_var_EF, nb_con_EF) = Extended_Formulation(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, true);
-# gamma_data = gamma_EF.data;
-# println("gamma_data = $(gamma_data)");
-# for (g,int_interval) in keys(gamma_data)
-#     if nb_gen==1
-#         println("[a = $(A[int_interval]),b = $(B[int_interval])] : $(gamma_data[(g,int_interval)])");
-#     else
-#         println("[a = $(A[g,int_interval]),b = $(B[g,int_interval])] : $(gamma_data[(g,int_interval)])");
-#     end
-# end
-# println("p_time_EF    = $(p_time_EF) ");
-# println("pbar_time_EF = $(pbar_time_EF)");
-# println("u_EF = $(u_EF)");
-# println("v_EF = $(v_EF) ");
-# println("w_EF = $(w_EF)");
-# println("price_EF = $(price_EF)");
-# println("l_val_EF = $(l_val_EF)");
-# println("obj_EF = $(obj_EF)");
+### Extended Formulation
+println("---------------------------------------------------------------------------------------");
+println("Extended Formulation");
+(p_EF, pbar_EF, gamma_EF, p_time_EF, pbar_time_EF, u_EF, v_EF, w_EF, price_EF, l_val_EF, obj_EF, _, nb_var_EF, nb_con_EF) = Extended_Formulation(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, true);
+gamma_data = gamma_EF.data;
+println("gamma_data = $(gamma_data)");
+for (g,int_interval) in keys(gamma_data)
+    if nb_gen==1
+        println("[a = $(A[int_interval]),b = $(B[int_interval])] : $(gamma_data[(g,int_interval)])");
+    else
+        println("[a = $(A[g,int_interval]),b = $(B[g,int_interval])] : $(gamma_data[(g,int_interval)])");
+    end
+end
+println("p_time_EF    = $(p_time_EF) ");
+println("pbar_time_EF = $(pbar_time_EF)");
+println("u_EF = $(u_EF)");
+println("v_EF = $(v_EF) ");
+println("w_EF = $(w_EF)");
+println("price_EF = $(price_EF)");
+println("l_val_EF = $(l_val_EF)");
+println("obj_EF = $(obj_EF)");
 
 # (_, _, _, _, _, _, obj_dual_lagrangian_EF, _) = Dual_Lagrangian(MinRunCapacity, MaxRunCapacity, RampUp, RampDown, UT, DT, SU, SD, T_max, nb_gen, F, C, NoLoadConsumption, L, VOLL, u_prior, v_prior, w_prior, p_prior, pbar_prior, u_posterior, v_posterior, w_posterior, p_posterior, pbar_posterior, price_EF);
 # println("obj_dual_lagrangian_EF = $(obj_dual_lagrangian_EF)");
